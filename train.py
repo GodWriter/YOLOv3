@@ -2,9 +2,10 @@ import os
 import torch
 import argparse
 
+from models import *
+from utils.utils import *
 from utils.logger import *
 from utils.parse_config import *
-
 
 
 if __name__ == "__main__":
@@ -23,3 +24,10 @@ if __name__ == "__main__":
 
     # 数据集配置
     data_config = parse_data_config(opt.data_config)
+    train_path = data_config["train"]
+    valid_path = data_config["valid"]
+    class_names = load_classes(data_config["name"])
+
+    # 模型初始化
+    model = Darknet(opt.model_def).to(device)
+    model.apply(weights_init_normal)
