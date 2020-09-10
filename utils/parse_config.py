@@ -32,7 +32,7 @@ def parse_data_config(path):
     options = dict()
 
     options['gpus'] = '0, 1, 2, 3'
-    options['num_workers'] = '10'
+    options['num_workers'] = '0'
 
     with open(path, 'r') as fp:
         lines = fp.readlines()
