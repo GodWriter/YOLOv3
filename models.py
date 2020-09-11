@@ -134,6 +134,14 @@ class YOLOLayer(nn.Module):
                       .permute(0, 1, 3, 4, 2)
                       .contiguous())
 
+        # 输出
+        x = torch.sigmoid(prediction[..., 0]) # Center x
+        y = torch.sigmoid(prediction[..., 1]) # Center y
+        w = prediction[..., 2] # Width
+        h = prediction[..., 3] # Height
+
+        pred_conf = torch.sigmoid(prediction[..., 4]) # Conf
+        pred_cls = torch.sigmoid(prediction[..., 5:]) # Cls pred
 
 
 class Darknet(nn.Module):
