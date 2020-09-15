@@ -126,22 +126,29 @@ class YOLOLayer(nn.Module):
         LongTensor = torch.cuda.LongTensor if x.is_cuda else torch.LongTensor
         ByteTensor = torch.cuda.ByteTensor if x.is_cuda else torch.ByteTensor
 
+        # x [batch, channel, width, height]
         self.img_dim = img_dim
         num_samples = x.size(0)
         grid_size = x.size(2)
 
+        # channel = num_anchors * (num_classes + 5)
+        # prediction [batch, num_anchors, num_classes+5, width, height]
+        # prediction [batch, num_anchors, width, height, num_classes+5]
         prediction = (x.view(num_samples, self.num_anchors, self.num_classes+5, grid_size, grid_size)
                       .permute(0, 1, 3, 4, 2)
                       .contiguous())
 
-        # 输出
+        # x, y, w, h [batch, num_anchors, width, height]
         x = torch.sigmoid(prediction[..., 0]) # Center x
         y = torch.sigmoid(prediction[..., 1]) # Center y
         w = prediction[..., 2] # Width
         h = prediction[..., 3] # Height
 
+        # pred_conf, pred_cls [batch, num_anchors, width, height, num_classes]
         pred_conf = torch.sigmoid(prediction[..., 4]) # Conf
         pred_cls = torch.sigmoid(prediction[..., 5:]) # Cls pred
+
+
 
 
 class Darknet(nn.Module):
