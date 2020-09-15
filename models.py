@@ -118,7 +118,22 @@ class YOLOLayer(nn.Module):
         self.bce_loss = nn.BCELoss()
 
     def compute_grid_offsets(self, grid_size, cuda=True):
-        pass
+        FloatTensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+
+        # gird_size即为 FPN输出的大小，有 13*13, 26*26, 52*52
+        # stride即为 img_dim缩放到当前特征图大小后，需缩小的倍数
+        self.grid_size = grid_size
+        self.stride = self.img_dim / self.grid_size
+        g = self.grid_size
+
+        # 计算特征网格的坐标
+        self.grid_x = torch.arange(g).repeat(g, 1).view([1, 1, g, g]).type(FloatTensor)
+        self.grid_y = torch.arange(g).repeat(g, 1).t().view([1, 1, g, g]).type(FloatTensor)
+
+        # 计算anchor经过同等比例缩放后的大小，并分别保存宽度和高度
+        self.scaled_anchors = FloatTensor([(a_w / self.stride, a_h / self.stride) for a_w, a_h in self.anchors])
+        self.anchor_w = self.scaled_anchors[:, 0:1].view((1, self.num_anchors, 1, 1))
+        self.anchor_h = self.scaled_anchors[:, 1:2].view((1, self.num_anchors, 1, 1))
 
     def forward(self, x, targets=None, img_dim=None):
         # 定义Tensors的种类
@@ -148,7 +163,16 @@ class YOLOLayer(nn.Module):
         pred_conf = torch.sigmoid(prediction[..., 4]) # Conf
         pred_cls = torch.sigmoid(prediction[..., 5:]) # Cls pred
 
+        # 如果grid_size改变了，即处理不同尺度的特征图了，需要根据新的特征图计算偏置等信息
+        if grid_size != self.grid_size:
+            self.compute_grid_offsets(grid_size, cuda=x.is_cuda)
 
+        # 对应论文中预测框的计算
+        pred_boxes = FloatTensor(prediction[..., :4].shape)
+        pred_boxes[..., 0] = x.data + self.grid_x
+        pred_boxes[..., 1] = y.data + self.grid_y
+        pred_boxes[..., 2] = torch.exp(w.data) * self.anchor_w
+        pred_boxes[..., 3] = torch.exp(h.data) * self.anchor_h
 
 
 class Darknet(nn.Module):
