@@ -10,6 +10,7 @@ import matplotlib.patches as patches
 
 from torch.autograd import Variable
 from utils.parse_config import *
+from utils.utils import build_targets
 
 
 def create_modules(module_defs):
@@ -177,7 +178,19 @@ class YOLOLayer(nn.Module):
         # [num_samples, -1, 4]，可得到所有预测的bbox，统一显示，其他同理
         output = torch.cat((pred_boxes.view(num_samples, -1, 4) * self.stride,
                             pred_conf.view(num_samples, -1, 1),
-                            pred_cls.view(num_samples, -1, self.num_classes)),-1)
+                            pred_cls.view(num_samples, -1, self.num_classes)), -1)
+
+        # target是什么？暂时没弄清楚
+        if targets is None:
+            return output, 0
+        else:
+            iou_scores, class_mask, obj_mask, noobj_mask, tx, ty, tw, th, tcls, tconf = build_targets(pred_boxes=pred_boxes,
+                                                                                                      pred_cls=pred_cls,
+                                                                                                      target=targets,
+                                                                                                      anchors=self.scaled_anchors,
+                                                                                                      ignore_thres=self.ignore_thres)
+
+
 
 
 class Darknet(nn.Module):
