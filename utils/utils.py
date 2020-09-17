@@ -19,5 +19,4 @@ def weights_init_normal(m):
 
 
 def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
-    # ByteTensor = torch.cuda.ByteTensor if pred_boxes
-    pass
+    ByteTensor = torch.cuda.ByteTensor if pred_boxes.is_cuda else torch.ByteTensor
