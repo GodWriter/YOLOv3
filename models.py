@@ -191,8 +191,6 @@ class YOLOLayer(nn.Module):
                                                                                                       ignore_thres=self.ignore_thres)
 
 
-
-
 class Darknet(nn.Module):
     def __init__(self, config_path, img_size=416):
         super(Darknet, self).__init__()

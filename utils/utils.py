@@ -20,3 +20,13 @@ def weights_init_normal(m):
 
 def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
     ByteTensor = torch.cuda.ByteTensor if pred_boxes.is_cuda else torch.ByteTensor
+    FloatTensor = torch.cuda.FloatTensor if pred_boxes.is_cuda else torch.FloatTensor
+
+    nB = pred_boxes.size(0) # batch_size
+    nA = pred_boxes.size(1) # 所有预测得到的bbox个数
+    nC = pred_cls.size(-1) # num_classes大小
+    nG = pred_boxes.size(2) # bbox的大小
+
+    # 输出的tensors
+    obj_mask
+
