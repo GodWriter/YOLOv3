@@ -19,7 +19,16 @@ def weights_init_normal(m):
 
 
 def bbox_wh_iou(wh1, wh2):
-    pass
+    wh2 = wh2.t()
+    w1, h1 = wh1[0], wh1[1]
+    w2, h2 = wh2[0], wh2[1]
+
+    # inter_area是将两个方框固定在同一个左上角，计算重叠距离
+    # union_area是计算两个方框的面积并相加
+    inter_area = torch.min(w1, w2) * torch.min(h1, h2)
+    union_area = (w1 * h1 + 1e-16) + w2 * h2 - inter_area
+
+    return inter_area / union_area
 
 
 def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
@@ -52,4 +61,7 @@ def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
     gwh = target_boxes[:, 2:]
 
     # 匹配候选框和ground truth，计算IOU，并得到最佳IOU
+    # .max(0)代表获取每列的最大值；best_ious得到指定dim最大值，best_n代表索引
     ious = torch.stack([bbox_wh_iou(anchor, gwh) for anchor in anchors])
+    best_ious, best_n = ious.max(0)
+
