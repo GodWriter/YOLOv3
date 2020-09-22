@@ -132,6 +132,7 @@ class YOLOLayer(nn.Module):
         self.grid_y = torch.arange(g).repeat(g, 1).t().view([1, 1, g, g]).type(FloatTensor)
 
         # 计算anchor经过同等比例缩放后的大小，并分别保存宽度和高度
+        # scaled_anchors的有效维度只有2维
         self.scaled_anchors = FloatTensor([(a_w / self.stride, a_h / self.stride) for a_w, a_h in self.anchors])
         self.anchor_w = self.scaled_anchors[:, 0:1].view((1, self.num_anchors, 1, 1))
         self.anchor_h = self.scaled_anchors[:, 1:2].view((1, self.num_anchors, 1, 1))
