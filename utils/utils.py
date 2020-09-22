@@ -55,7 +55,7 @@ def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
     tcls = FloatTensor(nB, nA, nG, nG).fill_(0)
 
     # 转换为与检测框相对应的位置
-    # targets维度的含义可从datasets.py中获得，共6维；0占位，1类别，2:6为bbox
+    # targets维度的含义可从datasets.py中获得，共6维；0代表当前batch第几张照片，1类别，2:6为bbox
     target_boxes = target[:, 2:6] * nG
 
     # 获取ground truth对应的x,y和w,h
@@ -69,4 +69,19 @@ def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
     # .max(0)代表获取每列的最大值；best_ious得到指定dim最大值，best_n代表索引
     # 即best_ious记录了每一列最大的交并比，best_n记录了其idx
     best_ious, best_n = ious.max(0)
+
+    # 分离目标值，b代表idx，target_labels代表类别
+    b, target_labels = target[:, :2].long().t()
+    gx, gy = gxy.t()
+    gw, gh = gwh.t()
+    gi, gj = gxy.long().t()
+
+    # 设置掩码，best_n的维度是ground truth，所以与ground truth对应的那几个框的维度设置为1
+    obj_mask[b, best_n, gj, gi] = 1
+    noobj_mask[b, best_n, gj, gi] = 0
+
+    # 进一步修改noobj_mask，为后续损失做准备
+    # 当iou超过ignore threshold时，将noobj_mask设置为0
+    for i, anchor_ious in enumerate(ious.t()):
+        noobj_mask[b[i], anchor_ious > ignore_thres, gj[i], gi[i]] = 0
 
