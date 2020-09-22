@@ -33,6 +33,10 @@ def bbox_wh_iou(wh1, wh2):
     return inter_area / union_area
 
 
+def bbox_iou(box1, box2, x1y1x2y2=True):
+    pass
+
+
 def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
     ByteTensor = torch.cuda.ByteTensor if pred_boxes.is_cuda else torch.ByteTensor
     FloatTensor = torch.cuda.FloatTensor if pred_boxes.is_cuda else torch.FloatTensor
@@ -84,4 +88,20 @@ def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
     # 当iou超过ignore threshold时，将noobj_mask设置为0
     for i, anchor_ious in enumerate(ious.t()):
         noobj_mask[b[i], anchor_ious > ignore_thres, gj[i], gi[i]] = 0
+
+    # 调整坐标
+    tx[b, best_n, gj, gi] = gx - gx.floor()
+    ty[b, best_n, gj, gi] = gy - gy.floor()
+    tw[b, best_n, gj, gi] = torch.log(gw / anchors[best_n][:, 0] + 1e-16)
+    th[b, best_n, gj, gi] = torch.log(gh / anchors[best_n][:, 1] + 1e-16)
+
+    # label的独热编码
+    tcls[b, best_n, gj, gi, target_labels] = 1
+
+    # 计算标签的正确性，以及anchor处的最佳iou
+    class_mask[b, best_n, gj, gi] = (pred_cls[b, best_n, gj, gi].argmax(-1) == target_labels).float()
+    iou_scores[b, best_n, gj, gi] = bbox_iou(pred_boxes[b, best_n, gj, gi], target_boxes, x1y1x2y2=False)
+
+    tconf = obj_mask.float()
+    return iou_scores, class_mask, obj_mask, noobj_mask, tx, ty, tw, th, tcls, tconf
 
