@@ -3,6 +3,10 @@ from __future__ import division
 import torch
 
 
+def to_cpu(tensor):
+    return tensor.detach().cpu()
+
+
 def load_classes(path):
     fp = open(path, 'r')
     names = fp.read().split('\n')[:-1]
