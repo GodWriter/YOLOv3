@@ -231,6 +231,8 @@ class YOLOLayer(nn.Module):
                             "conf_noobj": to_cpu(conf_noobj).item(),
                             "grid_size": grid_size}
 
+            return output, total_loss
+
 
 class Darknet(nn.Module):
     def __init__(self, config_path, img_size=416):
