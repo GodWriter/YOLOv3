@@ -34,7 +34,31 @@ def bbox_wh_iou(wh1, wh2):
 
 
 def bbox_iou(box1, box2, x1y1x2y2=True):
-    pass
+    if not x1y1x2y2:
+        b1_x1, b1_x2 = box1[:, 0] - box1[:, 2] / 2, box1[:, 0] + box1[:, 2] / 2
+        b1_y1, b1_y2 = box1[:, 1] = box1[:, 3] / 2, box1[:, 1] + box1[:, 3] / 2
+        b2_x1, b2_x2 = box2[:, 0] - box2[:, 2] / 2, box2[:, 0] + box2[:, 2] / 2
+        b2_y1, b2_y2 = box2[:, 1] = box2[:, 3] / 2, box2[:, 1] + box2[:, 3] / 2
+    else:
+        b1_x1, b1_y1, b1_x2, b1_y2 = box1[:, 0], box1[:, 1], box1[:, 2], box1[:, 3]
+        b2_x1, b2_y1, b2_x2, b2_y2 = box1[:, 0], box1[:, 1], box1[:, 2], box1[:, 3]
+
+    # 求相交矩阵的坐标，左上顶点选择较大的x,y值，右下端点选择较小的x,y值构成的矩形
+    inter_rect_x1 = torch.max(b1_x1, b2_x1)
+    inter_rect_y1 = torch.max(b1_y1, b2_y1)
+    inter_rect_x2 = torch.min(b1_x2, b2_x2)
+    inter_rect_y2 = torch.min(b1_y2, b2_y2)
+
+    # 计算相交矩形的面积，min代表取下界为0
+    inter_area = torch.clamp(inter_rect_x2 - inter_rect_x1 + 1, min=0) * \
+                 torch.clamp(inter_rect_y2 - inter_rect_y1 + 1, min=0)
+
+    # 计算两个矩形的总面积
+    b1_area = (b1_x2 - b1_x1 + 1) * (b1_y2 - b1_y1 + 1)
+    b2_area = (b2_x2 - b2_x1 + 1) * (b2_y2 - b2_y1 + 1)
+
+    iou = inter_area / (b1_area + b2_area - inter_area + 1e-16)
+    return iou
 
 
 def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
@@ -100,6 +124,9 @@ def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
 
     # 计算标签的正确性，以及anchor处的最佳iou
     class_mask[b, best_n, gj, gi] = (pred_cls[b, best_n, gj, gi].argmax(-1) == target_labels).float()
+
+    # 这里为什么要再次计算IOU，猜测通过bbox_wh_iou()先筛选出至少在大小上符合题意的，作为分类的正负样本；
+    # bbox_iou()选择一批，用于回归计算的样本；由于上一步的筛选，这一步的计算量降低了
     iou_scores[b, best_n, gj, gi] = bbox_iou(pred_boxes[b, best_n, gj, gi], target_boxes, x1y1x2y2=False)
 
     tconf = obj_mask.float()
