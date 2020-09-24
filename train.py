@@ -31,3 +31,15 @@ if __name__ == "__main__":
     # 模型初始化
     model = Darknet(opt.model_def).to(device)
     model.apply(weights_init_normal)
+
+    # 特殊情况下从checkpoint开始训练
+    if opt.pretrained_weights:
+        pass
+
+    dataset = ListDataset(train_path, augment=True, multiscale=opt.multiscale_training)
+    dataloader = torch.utils.data.DataLoader(dataset,
+                                             batch_size=opt.batch_size,
+                                             shuffle=True,
+                                             num_workers=opt.n_cpu,
+                                             pin_memory=True,
+                                             collate_fn=dataset.collate_fn)
