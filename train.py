@@ -5,6 +5,7 @@ import argparse
 from models import *
 from utils.utils import *
 from utils.logger import *
+from utils.datasets import *
 from utils.parse_config import *
 
 
@@ -15,6 +16,8 @@ if __name__ == "__main__":
     parser.add_argument("--gradient_accumulations", type=int, default=2, help="number of gradient accums before step")
     parser.add_argument("--model_def", type=str, default="config/yolov3.cfg", help="path to model definition file")
     parser.add_argument("--data_config", type=str, default="config/coco.data", help="path to data config file")
+    parser.add_argument("--pretrained_weights", type=str, help="if specified starts from checkpoint model")
+    parser.add_argument("--multiscale_training", default=True, help="allow for multi-scale training")
 
     opt = parser.parse_args()
     print(opt)
@@ -43,3 +46,23 @@ if __name__ == "__main__":
                                              num_workers=opt.n_cpu,
                                              pin_memory=True,
                                              collate_fn=dataset.collate_fn)
+
+    optimizer = torch.optim.Adam(model.parameters())
+
+    metrics = ["grid_size",
+               "loss",
+               "x",
+               "y",
+               "w",
+               "h",
+               "conf",
+               "cls",
+               "cls_acc",
+               "recall50",
+               "recall75",
+               "precision",
+               "conf_obj",
+               "conf_noobj"]
+
+    for epoch in range(opt.epoches):
+        pass
