@@ -12,6 +12,12 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 
+def pad_to_square(img, pad_value):
+    c, h, w = img.shape
+    dim_diff = np.abs(h - w)
+    pad1, pad2 = 
+
+
 class ListDataset(Dataset):
     def __init__(self, list_path, img_size=416, augment=True, multiscale=True, normalized_labels=True):
         with open(list_path, "r") as file:
@@ -40,4 +46,8 @@ class ListDataset(Dataset):
             img = img.unsqueeze(0)
             img = img.expand((3, img.shape[1:]))
 
-        pass
+        _, h, w = img.shape
+        h_factor, w_factor = (h, w) if self.normalized_labels else (1, 1)
+        img, pad = pad_to_square(img, 0)
+        _, padded_h, padded_w = img.shape
+
