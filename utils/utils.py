@@ -84,7 +84,7 @@ def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
     ty = FloatTensor(nB, nA, nG, nG).fill_(0)
     tw = FloatTensor(nB, nA, nG, nG).fill_(0)
     th = FloatTensor(nB, nA, nG, nG).fill_(0)
-    tcls = FloatTensor(nB, nA, nG, nG).fill_(0)
+    tcls = FloatTensor(nB, nA, nG, nG, nC).fill_(0)
 
     # 转换为与检测框相对应的位置
     # targets维度的含义可从datasets.py中获得，共6维；0代表当前batch第几张照片，1类别，2:6为bbox
@@ -100,6 +100,7 @@ def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
 
     # .max(0)代表获取每列的最大值；best_ious得到指定dim最大值，best_n代表索引
     # 即best_ious记录了每一列最大的交并比，best_n记录了其idx
+    # 这里一直有个问题，此时IOU的计算全都是默认同一左上角位置的，当大小相同而位置差距极大时，该如何处理呢；因为best_n最后就是gt的个数了
     best_ious, best_n = ious.max(0)
 
     # 分离目标值，b代表idx，target_labels代表类别

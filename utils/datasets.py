@@ -112,8 +112,8 @@ class ListDataset(Dataset):
         # 获取__getitem__()中，得到的三个变量
         paths, imgs, targets = list(zip(*batch))
 
-        # 移除空得bbox，并给bbox编号
-        targets = [boxes for boxes in targets if boxes is not  None]
+        # 移除空得bbox，并给bbox编号，编号代表其属于第几张图片
+        targets = [boxes for boxes in targets if boxes is not None]
         for i, boxes in enumerate(targets):
             boxes[:, 0] = i
 
