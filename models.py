@@ -190,16 +190,22 @@ class YOLOLayer(nn.Module):
                                                                                                       target=targets,
                                                                                                       anchors=self.scaled_anchors,
                                                                                                       ignore_thres=self.ignore_thres)
+
+            # 位置损失
             loss_x = self.mse_loss(x[obj_mask], tx[obj_mask])
             loss_y = self.mse_loss(y[obj_mask], ty[obj_mask])
             loss_w = self.mse_loss(w[obj_mask], tw[obj_mask])
             loss_h = self.mse_loss(h[obj_mask], th[obj_mask])
 
+            # objectness loss
             loss_conf_obj = self.bce_loss(pred_conf[obj_mask], tconf[obj_mask])
             loss_conf_noobj = self.bce_loss(pred_conf[noobj_mask], tconf[noobj_mask])
-
             loss_conf = self.obj_scale * loss_conf_obj + self.noobj_scale * loss_conf_noobj
+
+            # 置信损失
             loss_cls = self.bce_loss(pred_cls[obj_mask], tcls[obj_mask])
+
+            # 总损失
             total_loss = loss_x + loss_y + loss_w + loss_h + loss_conf + loss_cls
 
             # Metrics

@@ -75,8 +75,8 @@ def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
     nG = pred_boxes.size(2) # width和height，width = height，即grid_size
 
     # 输出的tensors，为什么要写成4维，是为了损失计算的方便性
-    obj_mask = ByteTensor(nB, nA, nG, nG).fill_(0)
-    noobj_mask = ByteTensor(nB, nA, nG, nG).fill_(1)
+    obj_mask = ByteTensor(nB, nA, nG, nG).fill_(0) # 1表示有目标的位置
+    noobj_mask = ByteTensor(nB, nA, nG, nG).fill_(1) # 1表示没有目标的位置
     class_mask = FloatTensor(nB, nA, nG, nG).fill_(0)
     iou_scores = FloatTensor(nB, nA, nG, nG).fill_(0)
 
@@ -88,6 +88,7 @@ def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
 
     # 转换为与检测框相对应的位置
     # targets维度的含义可从datasets.py中获得，共6维；0代表当前batch第几张照片，1类别，2:6为bbox
+    # 坐标从0-1扩大到feature map的尺度上
     target_boxes = target[:, 2:6] * nG
 
     # 获取ground truth对应的x,y和w,h
@@ -107,6 +108,7 @@ def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
     b, target_labels = target[:, :2].long().t()
     gx, gy = gxy.t()
     gw, gh = gwh.t()
+    # 向下取整，从坐标获得grid cell坐标
     gi, gj = gxy.long().t()
 
     # 设置掩码，best_n的维度是ground truth，所以与ground truth对应的那几个框的维度设置为1
@@ -127,13 +129,14 @@ def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):
     # label的独热编码
     tcls[b, best_n, gj, gi, target_labels] = 1
 
-    # 计算标签的正确性，以及anchor处的最佳iou
+    # 计算标签的正确性，以及最佳anchor处的iou
     class_mask[b, best_n, gj, gi] = (pred_cls[b, best_n, gj, gi].argmax(-1) == target_labels).float()
 
     # 这里为什么要再次计算IOU，猜测通过bbox_wh_iou()先筛选出至少在大小上符合题意的，作为分类的正负样本；
     # bbox_iou()选择一批，用于回归计算的样本；由于上一步的筛选，这一步的计算量降低了
     iou_scores[b, best_n, gj, gi] = bbox_iou(pred_boxes[b, best_n, gj, gi], target_boxes, x1y1x2y2=False)
 
+    # objectness score，1的表示GT，1的个数=nobjs
     tconf = obj_mask.float()
     return iou_scores, class_mask, obj_mask, noobj_mask, tx, ty, tw, th, tcls, tconf
 
