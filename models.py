@@ -177,6 +177,7 @@ class YOLOLayer(nn.Module):
         pred_boxes[..., 3] = torch.exp(h.data) * self.anchor_h
 
         # [num_samples, -1, 4]，可得到所有预测的bbox，统一显示，其他同理
+        # torch.cat()在-1维度进行拼接
         output = torch.cat((pred_boxes.view(num_samples, -1, 4) * self.stride,
                             pred_conf.view(num_samples, -1, 1),
                             pred_cls.view(num_samples, -1, self.num_classes)), -1)

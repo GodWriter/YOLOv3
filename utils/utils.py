@@ -13,6 +13,15 @@ def load_classes(path):
     return names
 
 
+def xywh2xyxy(x):
+    y = x.new(x.shape)
+    y[..., 0] = x[..., 0] - x[..., 2] / 2
+    y[..., 1] = x[..., 1] - x[..., 3] / 2
+    y[..., 2] = x[..., 0] + x[..., 2] / 2
+    y[..., 3] = x[..., 1] + x[..., 3] / 2
+    return y
+
+
 def weights_init_normal(m):
     classname = m.__class__.__name__
     if classname.find("Conv") != -1:
@@ -63,6 +72,58 @@ def bbox_iou(box1, box2, x1y1x2y2=True):
 
     iou = inter_area / (b1_area + b2_area - inter_area + 1e-16)
     return iou
+
+
+def non_max_suppression(prediction, conf_thres=0.5, nms_thres=0.4):
+
+    # 从(center_x, center_y, width, height) 转变为 (x1, y1, x2, y2)
+    prediction[..., :4] = xywh2xyxy(prediction[..., :4])
+    output = [None for _ in range(len(prediction))]
+
+    # 遍历batch中得每一张图
+    for image_i, image_pred in enumerate(prediction):
+
+        # 过滤掉置信度得分低于阈值的框
+        image_pred = image_pred[image_pred[:, 4] >= conf_thres]
+
+        # 如果过滤完后，候选框个数为0，则处理下一张图
+        if not image_pred.size(0):
+            continue
+
+        # score记录了不同样本中，各自 存在目标置信度 * 类别置信度 的最大值
+        score = image_pred[:, 4] * image_pred[:, 5:].max(1)[0]
+
+        # 根据从大到小定义image_pred中的每一个值在排序数组中得位置，并以及调整image_pred得顺序
+        image_pred = image_pred[(-score).argsort()]
+
+        # 获得 类别置信度最高分，最高分得位置得顺序就是类别种类
+        # 将 [bbox, c得分，类别] 拼接在一起
+        class_confs, class_preds = image_pred[:, 5:].max(1, keepdim=True)
+        detections = torch.cat((image_pred[:, :5], class_confs.float(), class_preds.float()), 1)
+
+        # 进行非极大值抑制
+        keep_boxes = []
+        while detections.size(0):
+            # 取detections中得一条记录和其他所有记录，比较bbox重合信息和类别信息
+            large_overlap = bbox_iou(detections[0, :4].unsqueeze(0), detections[:, :4]) > nms_thres
+            label_match = detections[0, -1] == detections[:, -1]
+
+            # 具有较低的置信分数，较大的IOUs，以及匹配的类别标签
+            invalid = large_overlap & label_match
+            weights = detections[invalid, 4:5]
+
+            # 按置信顺序合并重叠的bboxes
+            # 这难道是YOLOv3的小trick？ 将重叠程度的候选框乘上权重（类别置信度），再归一化？
+            detections[0, :4] = (weights * detections[invalid, :4]).sum(0) / weights.sum()
+            keep_boxes += [detections[0]]
+
+            # 删除已比较过的候选框
+            detections = detections[~invalid]
+
+        if keep_boxes:
+            output[image_i] = torch.stack(keep_boxes)
+
+    return output
 
 
 def build_targets(pred_boxes, pred_cls, target, anchors, ignore_thres):

@@ -125,4 +125,5 @@ if __name__ == "__main__":
             print("\n---- Evaluating Model ----")
 
             # 在验证集上验证模型
-            pass
+            precision, recall, AP, f1, ap_class = evaluate(model,
+                                                           path)
