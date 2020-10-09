@@ -216,7 +216,8 @@ class YOLOLayer(nn.Module):
             conf50 = (pred_conf > 0.5).float()
             iou50 = (iou_scores > 0.5).float()
             iou75 = (iou_scores > 0.75).float()
-
+            
+            # detected_mask指的是满足被检测条件，且的确存在gt的位置；用于计算召回率，召回率 = 被检测出来的gt / gt总个数
             detected_mask = conf50 * class_mask * tconf
             precision = torch.sum(iou50 * detected_mask) / (conf50.sum() + 1e-16)
             recall50 = torch.sum(iou50 * detected_mask) / (obj_mask.sum() + 1e-16)
